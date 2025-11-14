@@ -1,69 +1,38 @@
-name: drupal10-fresh
-recipe: drupal10
+name: drupal11-starter
+recipe: drupal11
 
 config:
-  via: nginx
-  webroot: 'web'
-  database: mysql:8.0
+  webroot: web
+  via: nginx:1.25
+  php: '8.4'
   xdebug: true
+  database: mysql:8.4
 
 services:
-  database:
-    type: mysql:8.0
-  appserver:
-    xdebug: true
-    type: php:8.3
-    composer_version: 2-latest
-    build_as_root:
-      - apt-get update -y
-      - curl -sL https://deb.nodesource.com/setup_18.x | bash -
-      - apt install nodejs -y
-      - npm install -g gulp-cli
   mailhog:
-    scanner: false
-    type: mailhog:v1.0.0
-    portforward: false
-    hogfrom:
-      - appserver
-  adminer:
-    type: compose
-    services:
-      image: dehy/adminer
-      command: /bin/s6-svscan /etc/services.d
-    depends_on:
-      - database
+    type: mailhog
+    portforward: true
+
   phpmyadmin:
     type: phpmyadmin
     hosts:
       - database
-
-proxy:
-  appserver:
-    - "example.demo.lndo.site"
-  mailhog:
-    - "mails-example.demo.lndo.site"
-  adminer:
-    - "adminer-example.demo.lndo.site"
-  phpmyadmin:
-    - "phpmyadmin.lando.site"
+  
+  solrserver:
+    type: solr:9
+    portforward: true
 
 tooling:
+  composer:
+    service: appserver
+    cmd: composer
+
   xdebug-on:
     service: appserver
-    description: Enable xdebug for nginx.
-    cmd: docker-php-ext-enable xdebug && pkill -o -USR2 php-fpm && echo "Enabling xdebug"
+    cmd: docker-php-ext-enable xdebug && pkill -o -USR2 php-fpm
     user: root
+
   xdebug-off:
     service: appserver
-    description: CUSTOM Disable xdebug for nginx.
-    cmd: rm /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini && pkill -o -USR2 php-fpm && echo "Disabling xdebug"
+    cmd: rm /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini && pkill -o -USR2 php-fpm
     user: root
-  npm:
-    service: appserver
-    cmd: npm
-  node:
-    service: appserver
-    cmd: node
-  gulp:
-    service: appserver
-    cmd: gulp
